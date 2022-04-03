@@ -1,0 +1,12 @@
+{
+  "name": "css",
+  "version": "0.1.0",
+  "files": [
+    "css_bg.wasm",
+    "css.js",
+    "css.d.ts"
+  ],
+  "module": "css.js",
+  "types": "css.d.ts",
+  "sideEffects": false
+}
