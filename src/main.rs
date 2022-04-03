@@ -1,4 +1,4 @@
-use std::{iter::Peekable, str::Chars, slice::Iter, env, fs, path::Path};
+use std::{env, fs, iter::Peekable, path::Path, slice::Iter, str::Chars};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
@@ -97,11 +97,11 @@ fn parse_s_expr(tokens: &mut Peekable<Iter<Token>>) -> Option<SExpr> {
             Token::LParen => {
                 tokens.next();
                 children.push(parse_s_expr(tokens)?);
-            },
+            }
             _ => {
                 tokens.next();
                 break;
-            },
+            }
         };
     }
     Some(SExpr {
@@ -114,7 +114,7 @@ fn parse_s_expr(tokens: &mut Peekable<Iter<Token>>) -> Option<SExpr> {
 fn parse_rule(tokens: &mut Peekable<Iter<Token>>) -> Option<Rule> {
     let property = match tokens.next()? {
         Token::String(string) => string.to_owned(),
-        _ => return None
+        _ => return None,
     };
     let value = match tokens.next()? {
         Token::String(value) => vec![value.to_owned()],
@@ -126,10 +126,7 @@ fn parse_rule(tokens: &mut Peekable<Iter<Token>>) -> Option<Rule> {
             .collect::<Vec<String>>(),
         _ => return None,
     };
-    let rule = Rule {
-        property,
-        value,
-    };
+    let rule = Rule { property, value };
     Some(rule)
 }
 
@@ -145,7 +142,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{lex, parse, SExpr, Selector, Token, Rule};
+    use crate::{lex, parse, Rule, SExpr, Selector, Token};
 
     #[test]
     fn lex_selector_empty() {
@@ -176,7 +173,10 @@ mod tests {
         let s_exprs = parse(tokens);
         let expected = vec![SExpr {
             selector: Selector("body".into()),
-            rules: vec![Rule {property: "color".into(), value: vec!["red".into()]}],
+            rules: vec![Rule {
+                property: "color".into(),
+                value: vec!["red".into()],
+            }],
             children: vec![],
         }];
         assert_eq!(s_exprs, expected);
@@ -194,6 +194,41 @@ mod tests {
             Token::RParen,
         ];
         assert_eq!(tokens, expected);
+    }
+
+    #[test]
+    fn lex_selector_property_list_value() {
+        let input = "(body margin (0 8px 0 8px))";
+        let tokens = lex(input.into()).unwrap();
+        let expected = vec![
+            Token::LParen,
+            Token::String("body".into()),
+            Token::String("margin".into()),
+            Token::LParen,
+            Token::String("0".into()),
+            Token::String("8px".into()),
+            Token::String("0".into()),
+            Token::String("8px".into()),
+            Token::RParen,
+            Token::RParen,
+        ];
+        assert_eq!(tokens, expected);
+    }
+
+    #[test]
+    fn parse_selector_property_list_value() {
+        let input = "(body margin (0 8px 0 8px))";
+        let tokens = lex(input.into()).unwrap();
+        let s_exprs = parse(tokens);
+        let expected = vec![SExpr {
+            selector: Selector("body".into()),
+            rules: vec![Rule {
+                property: "margin".into(),
+                value: vec!["0".into(), "8px".into(), "0".into(), "8px".into()],
+            }],
+            children: vec![],
+        }];
+        assert_eq!(s_exprs, expected);
     }
 
     #[test]
@@ -233,8 +268,16 @@ mod tests {
         let s_exprs = parse(tokens);
         let expected = vec![SExpr {
             selector: Selector("body".into()),
-            rules: vec![Rule {property: "background-color".into(), value: vec!["white".into()]},
-            Rule {property: "color".into(), value: vec!["red".into()]}],
+            rules: vec![
+                Rule {
+                    property: "background-color".into(),
+                    value: vec!["white".into()],
+                },
+                Rule {
+                    property: "color".into(),
+                    value: vec!["red".into()],
+                },
+            ],
             children: vec![],
         }];
         assert_eq!(s_exprs, expected);
@@ -247,12 +290,23 @@ mod tests {
         let s_exprs = parse(tokens);
         let expected = vec![SExpr {
             selector: Selector("body".into()),
-            rules: vec![Rule {property: "background-color".into(), value: vec!["white".into()]},
-            Rule {property: "color".into(), value: vec!["red".into()]}],
+            rules: vec![
+                Rule {
+                    property: "background-color".into(),
+                    value: vec!["white".into()],
+                },
+                Rule {
+                    property: "color".into(),
+                    value: vec!["red".into()],
+                },
+            ],
             children: vec![SExpr {
                 selector: Selector("p".into()),
-                rules: vec![Rule {property: "color".into(), value: vec!["blue".into()]}],
-                children: vec![]
+                rules: vec![Rule {
+                    property: "color".into(),
+                    value: vec!["blue".into()],
+                }],
+                children: vec![],
             }],
         }];
         assert_eq!(s_exprs, expected);
@@ -285,7 +339,10 @@ mod tests {
             rules: vec![],
             children: vec![SExpr {
                 selector: Selector("li".into()),
-                rules: vec![Rule {property: "text-decoration".into(), value: vec!["none".into()]}],
+                rules: vec![Rule {
+                    property: "text-decoration".into(),
+                    value: vec!["none".into()],
+                }],
                 children: vec![],
             }],
         }];
@@ -299,10 +356,16 @@ mod tests {
         let s_exprs = parse(tokens);
         let expected = vec![SExpr {
             selector: Selector("ul".into()),
-            rules: vec![Rule { property: "padding".into(), value: vec!["0".into()]}],
+            rules: vec![Rule {
+                property: "padding".into(),
+                value: vec!["0".into()],
+            }],
             children: vec![SExpr {
                 selector: Selector("li".into()),
-                rules: vec![Rule {property: "text-decoration".into(), value: vec!["none".into()]}],
+                rules: vec![Rule {
+                    property: "text-decoration".into(),
+                    value: vec!["none".into()],
+                }],
                 children: vec![],
             }],
         }];
@@ -316,15 +379,29 @@ mod tests {
         let s_exprs = parse(tokens);
         let expected = vec![SExpr {
             selector: Selector("ul".into()),
-            rules: vec![Rule { property: "padding".into(), value: vec!["0".into()]},
-            Rule { property: "margin".into(), value: vec!["0".into()]}],
+            rules: vec![
+                Rule {
+                    property: "padding".into(),
+                    value: vec!["0".into()],
+                },
+                Rule {
+                    property: "margin".into(),
+                    value: vec!["0".into()],
+                },
+            ],
             children: vec![SExpr {
                 selector: Selector("li".into()),
-                rules: vec![Rule {property: "padding-left".into(), value: vec!["16px".into()]}],
+                rules: vec![Rule {
+                    property: "padding-left".into(),
+                    value: vec!["16px".into()],
+                }],
                 children: vec![SExpr {
                     selector: Selector("a".into()),
-                    rules: vec![Rule {property: "text-decoration".into(), value: vec!["none".into()]}],
-                    children: vec![]
+                    rules: vec![Rule {
+                        property: "text-decoration".into(),
+                        value: vec!["none".into()],
+                    }],
+                    children: vec![],
                 }],
             }],
         }];
@@ -417,12 +494,18 @@ mod tests {
         let expected = vec![
             SExpr {
                 selector: Selector("body".into()),
-                rules: vec![Rule {property: "color".into(), value: vec!["red".into()]}],
+                rules: vec![Rule {
+                    property: "color".into(),
+                    value: vec!["red".into()],
+                }],
                 children: vec![],
             },
             SExpr {
                 selector: Selector("p".into()),
-                rules: vec![Rule {property: "color".into(), value: vec!["blue".into()]}],
+                rules: vec![Rule {
+                    property: "color".into(),
+                    value: vec!["blue".into()],
+                }],
                 children: vec![],
             },
         ];
