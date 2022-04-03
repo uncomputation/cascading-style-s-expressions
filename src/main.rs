@@ -428,13 +428,4 @@ mod tests {
         ];
         assert_eq!(s_exprs, expected);
     }
-
-    #[test]
-    fn parse_style_css_file() {
-        let input = std::fs::read_to_string("style.txt").unwrap();
-        let tokens = lex(input).unwrap();
-        let s_exprs = parse(tokens);
-        let expected = vec![];
-        assert_eq!(s_exprs, expected);
-    }
 }

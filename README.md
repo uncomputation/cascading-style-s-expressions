@@ -14,4 +14,22 @@ becomes
 (body color red)
 ```
 
+And
+
+```css
+body {
+    color: red;
+}
+
+body a {
+    text-decoration: underline;
+}
+```
+
+becomes
+
+```
+(body color red (a text-decoration underline))
+```
+
 This is a format for personal use, but of course, you can take a look if it interests you. I may or may not end up using this on my own [personal site](https://uncomputation.net).
