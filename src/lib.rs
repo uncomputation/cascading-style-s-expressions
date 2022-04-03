@@ -1,4 +1,5 @@
-use std::{env, fs, iter::Peekable, path::Path, slice::Iter, str::Chars};
+use std::{iter::Peekable, slice::Iter, str::Chars};
+use wasm_bindgen::prelude::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
@@ -23,7 +24,20 @@ pub struct SExpr {
     children: Vec<SExpr>,
 }
 
-fn lex(input: String) -> Result<Vec<Token>, String> {
+impl SExpr {
+    pub fn to_stylesheet(&self, parent: &str) -> String {
+        let selector = self.selector.0.split_inclusive(",").map(|s| format!("{} {}", parent, s)).collect::<Vec<String>>().join("\n");
+        let rules: Vec<String> = self.rules.iter().map(|rule| format!("    {}: {};", rule.property, rule.value.join(" "))).collect();
+        let children: Vec<String> = self.children.iter().map(|child| child.to_stylesheet(&selector)).collect();
+        if self.rules.is_empty() {
+            format!("{}", children.join(""))
+        } else {
+            format!("{} {{\n{}\n}}\n{}", selector, rules.join("\n"), children.join("\n"))
+        }
+    }
+}
+
+pub fn lex(input: String) -> Result<Vec<Token>, String> {
     let mut tokens = vec![];
     let mut chars = input.chars().peekable();
     while let Some(c) = chars.peek() {
@@ -64,7 +78,7 @@ fn lex_string(chars: &mut Peekable<Chars>) -> String {
     string
 }
 
-fn parse(tokens: Vec<Token>) -> Vec<SExpr> {
+pub fn parse(tokens: Vec<Token>) -> Vec<SExpr> {
     let mut s_exprs = vec![];
     let mut left = 0;
     let mut depth: u32 = 0;
@@ -130,14 +144,15 @@ fn parse_rule(tokens: &mut Peekable<Iter<Token>>) -> Option<Rule> {
     Some(rule)
 }
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    let path = Path::new(&args[1]);
-    let input = fs::read_to_string(path).unwrap();
-    if let Ok(tokens) = lex(input) {
-        let s_exprs = parse(tokens);
-        println!("{:?}", s_exprs);
+#[wasm_bindgen]
+pub fn string_to_stylesheet(input: String) -> Result<String, JsValue> {
+    let mut string = String::new();
+    let tokens = lex(input)?;
+    let s_exprs = parse(tokens);
+    for s_expr in s_exprs {
+        string += &s_expr.to_stylesheet("");
     }
+    Ok(string)
 }
 
 #[cfg(test)]
